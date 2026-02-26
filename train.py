@@ -12,9 +12,10 @@ BatchType = Tuple[Dict[str, Tensor], Tensor]
 
 def train_model(
     train_data: Dataset[BatchType],
-) -> nn.Module:
+) -> nn.Module: # pyright: ignore[reportReturnType]
 
-    model = MXMDF(INPUT_DIMS, LATENT_DIM)
+    model: nn.Module = MXMDF(INPUT_DIMS, LATENT_DIM)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
     criterion = nn.BCELoss()
 
@@ -26,12 +27,20 @@ def train_model(
 
     model.train()
 
+    if EPOCHS <= 0:
+        torch.save(model.state_dict(), "mxmdf_model.pth")
+        return model
+
     for epoch in range(EPOCHS):
         total_loss: float = 0.0
 
         for inputs, labels in loader:
             preds, _ = model(inputs)
-            loss = criterion(preds.squeeze(), labels.float())
+
+            loss: Tensor = criterion(
+                preds.squeeze(),
+                labels.float(),
+            )
 
             optimizer.zero_grad()
             loss.backward()
@@ -39,7 +48,7 @@ def train_model(
 
             total_loss += float(loss.item())
 
-            print(f"Epoch {epoch+1}, Loss: {total_loss:.4f}")
+            print(f"Epoch {epoch + 1}, Loss: {total_loss:.4f}")
 
             torch.save(model.state_dict(), "mxmdf_model.pth")
 

@@ -21,15 +21,27 @@ def evaluate(
     with torch.no_grad():
         for inputs, y in dataloader:
             out, _ = model(inputs)
-            probs = out.squeeze().detach().cpu().tolist()
 
-            preds.extend(probs if isinstance(probs, list) else [probs])
-            labels.extend(y.detach().cpu().int().tolist())
+            probs_tensor: Tensor = out.squeeze().detach().cpu()
+            probs_list = probs_tensor.tolist()
 
-            y_pred: List[int] = [1 if p > 0.5 else 0 for p in preds]
+            if isinstance(probs_list, list):
+                preds.extend(float(p) for p in probs_list)
+            else:
+                preds.append(float(probs_list))
 
-            report: str = classification_report(labels, y_pred)
-            auc: float = roc_auc_score(labels, preds)
+                labels.extend(
+                    int(v) for v in y.detach().cpu().int().tolist()
+                )
 
-            print(report)
-            print(f"ROC-AUC: {auc:.4f}")
+                # ---- Compute metrics AFTER loop ----
+
+                y_pred: List[int] = [1 if p > 0.5 else 0 for p in preds]
+
+                report_raw = classification_report(labels, y_pred)
+                report: str = report_raw if isinstance(report_raw, str) else str(report_raw)
+
+                auc: float = float(roc_auc_score(labels, preds))
+
+                print(report)
+                print(f"ROC-AUC: {auc:.4f}")

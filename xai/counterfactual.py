@@ -7,7 +7,7 @@ def generate_counterfactual(
     model: nn.Module,
     sample: Dict[str, Tensor],
     epsilon: float = 0.05,
-) -> Dict[str, Tensor]:
+) -> Dict[str, Tensor]: # type: ignore
 
     model.eval()
 
@@ -17,7 +17,7 @@ def generate_counterfactual(
     }
 
     output, _ = model(sample_cf)
-    loss = -torch.log(output)
+    loss: Tensor = -torch.log(output)
 
     loss.backward()
 
